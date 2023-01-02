@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract Exchange is ERC20 {
     address public L3padTokenAddress;
 
-    constructor(address _L3padToken) ERC20("L3pad LP tokens" "LLP"){
+    constructor(address _L3padToken) ERC20("L3pad LP tokens","LLP"){
         require(_L3padToken != address(0), "Token address passed is null");
         L3padTokenAddress = _L3padToken ;
     }
@@ -17,7 +17,7 @@ contract Exchange is ERC20 {
         Returns the amount of token held by the contract
     */
     function getReserve() public view returns(uint){
-        return ERC20(L3padTokenAddress).balanceOf((address.this));
+        return ERC20(L3padTokenAddress).balanceOf(address(this));
     }
 
     // Add liquidity to exchange
@@ -35,7 +35,7 @@ contract Exchange is ERC20 {
             _mint(msg.sender,liquidity);
         }else{
             uint ethReserve = ethBalance - msg.value ;
-            uint L3padTokenAmount = (msg.sender * L3padTokenReserve)/(ethReserve);
+            uint256 L3padTokenAmount = (msg.value * L3padTokenReserve)/(ethReserve);
             require(_amount >= L3padTokenAmount, "Amount of token sent is less than the minimum required");
 
             L3padToken.transferFrom(msg.sender,address(this),L3padTokenAmount);
@@ -47,8 +47,8 @@ contract Exchange is ERC20 {
     }
 
     function removeLiquidity(uint _amount) public returns(uint,uint){
-        requiure(_amount > 0, "Amount should be greater than zero");
-        uint ethReserve = address(this);
+        require(_amount > 0, "Amount should be greater than zero");
+        uint ethReserve = address(this).balance;
         uint _totalSupply = totalSupply();
 
         uint ethAmount = (ethReserve * _amount)/_totalSupply;
@@ -78,7 +78,7 @@ contract Exchange is ERC20 {
     function ethToL3padTokens (uint _minTokens) public payable{
         uint256 tokenReserve = getReserve();
 
-        uint256 tokensBought = getAmountOfTokens(msg.value, address(this) - msg.value, tokenReserve);
+        uint256 tokensBought = getAmountOfTokens(msg.value, address(this).balance - msg.value, tokenReserve);
 
         require(tokensBought >= _minTokens, "insufficient output amount");
 
@@ -87,7 +87,7 @@ contract Exchange is ERC20 {
 
     function L3padTokenToEth(uint _tokensSold, uint _minEth) public {
         uint256 tokenReserve = getReserve();
-        uint256 ethBought = getAmountOfToken(_tokensSold,tokenReserve,address(this).balance);
+        uint256 ethBought = getAmountOfTokens(_tokensSold,tokenReserve,address(this).balance);
 
         require(ethBought >= _minEth, "Insufficient output amount");
 
